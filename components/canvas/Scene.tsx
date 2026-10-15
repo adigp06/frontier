@@ -9,17 +9,24 @@ import { SearchBar } from '@/components/ui/SearchBar';
 import { CategoryFilters } from '@/components/ui/CategoryFilters';
 import { CompanyDrawer } from '@/components/ui/CompanyDrawer';
 import { Company } from '@/types/company';
+import { AiExtractorModal } from '@/components/ui/AiExtractorModal';
 import { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 
 interface SceneProps {
   companies: Company[];
 }
 
-export function Scene({ companies }: SceneProps) {
+export function Scene({ companies: initialCompanies }: SceneProps) {
+  const [companies, setCompanies] = useState<Company[]>(initialCompanies);
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const controlsRef = useRef<OrbitControlsImpl | null>(null);
+
+  const handleAddCompany = (newCompany: Company) => {
+    setCompanies((prev) => [newCompany, ...prev]);
+    setSelectedCompany(newCompany);
+  };
 
   // Extract unique categories
   const categories = useMemo(() => {
@@ -105,6 +112,7 @@ export function Scene({ companies }: SceneProps) {
             resultCount={filteredCompanies.length}
             totalCount={companies.length}
           />
+          <AiExtractorModal onAddCompany={handleAddCompany} />
         </div>
 
         {/* Top-Right Sector Category Filters */}

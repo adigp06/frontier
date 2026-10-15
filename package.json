@@ -10,6 +10,7 @@
     "db:seed": "node --import tsx lib/supabase/seed.ts"
   },
   "dependencies": {
+    "@google/genai": "^2.30.0",
     "@react-three/drei": "^10.7.9",
     "@react-three/fiber": "^9.8.1",
     "@supabase/supabase-js": "^2.117.3",
