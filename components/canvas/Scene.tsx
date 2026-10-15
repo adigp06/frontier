@@ -1,10 +1,13 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Stars } from '@react-three/drei';
 import { NodeField } from './NodeField';
 import { CameraController } from './CameraController';
+import { SearchBar } from '@/components/ui/SearchBar';
+import { CategoryFilters } from '@/components/ui/CategoryFilters';
+import { CompanyDrawer } from '@/components/ui/CompanyDrawer';
 import { Company } from '@/types/company';
 import { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 
@@ -14,10 +17,39 @@ interface SceneProps {
 
 export function Scene({ companies }: SceneProps) {
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('All');
   const controlsRef = useRef<OrbitControlsImpl | null>(null);
 
+  // Extract unique categories
+  const categories = useMemo(() => {
+    return Array.from(new Set(companies.map((c) => c.category)));
+  }, [companies]);
+
+  // Compute category counts
+  const categoryCounts = useMemo(() => {
+    return companies.reduce((acc, c) => {
+      acc[c.category] = (acc[c.category] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+  }, [companies]);
+
+  // Filtered companies
+  const filteredCompanies = useMemo(() => {
+    return companies.filter((c) => {
+      const matchesCat = selectedCategory === 'All' || c.category === selectedCategory;
+      const matchesSearch =
+        searchQuery === '' ||
+        c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        c.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        c.tagline.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        c.description.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchesCat && matchesSearch;
+    });
+  }, [companies, selectedCategory, searchQuery]);
+
   return (
-    <div className="relative w-full h-screen bg-zinc-950 overflow-hidden">
+    <div className="relative w-full h-screen bg-zinc-950 overflow-hidden font-sans">
       <Canvas
         camera={{ position: [0, 20, 35], fov: 60 }}
         gl={{ antialias: true }}
@@ -38,6 +70,8 @@ export function Scene({ companies }: SceneProps) {
           companies={companies}
           selectedCompany={selectedCompany}
           onSelectCompany={(company) => setSelectedCompany(company)}
+          searchQuery={searchQuery}
+          selectedCategory={selectedCategory}
         />
 
         {/* Camera Controller */}
@@ -54,36 +88,54 @@ export function Scene({ companies }: SceneProps) {
         />
       </Canvas>
 
-      {/* Temporary HUD overlay info for Milestone 3 selection & reset */}
-      {selectedCompany && (
-        <div className="absolute top-6 left-6 z-10 p-4 bg-zinc-900/95 border border-zinc-800 rounded-xl shadow-2xl backdrop-blur-md text-white max-w-sm">
-          <div className="flex items-start justify-between gap-3 mb-2">
-            <div>
-              <span className="text-xs font-semibold px-2 py-0.5 bg-blue-500/20 text-blue-400 rounded-full">
-                {selectedCompany.category}
-              </span>
-              <h2 className="text-lg font-bold mt-1">{selectedCompany.name}</h2>
-            </div>
-            <button
-              onClick={() => setSelectedCompany(null)}
-              className="text-zinc-400 hover:text-white text-xs px-2 py-1 bg-zinc-800 rounded hover:bg-zinc-700 transition-colors"
-            >
-              Reset
-            </button>
-          </div>
-          <p className="text-xs text-zinc-300 line-clamp-2 mb-3">{selectedCompany.tagline}</p>
-          <div className="flex items-center justify-between text-[11px] text-zinc-400 pt-2 border-t border-zinc-800">
-            <span>Stage: <strong className="text-zinc-200">{selectedCompany.funding_stage}</strong></span>
-            <span>Founded: <strong className="text-zinc-200">{selectedCompany.founded_year}</strong></span>
-          </div>
-        </div>
-      )}
+      {/* Bloomberg Terminal HUD Header & Filter Overlay */}
+      <div className="absolute top-4 left-4 right-4 z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pointer-events-none">
 
-      {/* Instructions HUD */}
-      <div className="absolute bottom-6 left-6 z-10 px-3 py-2 bg-zinc-900/85 border border-zinc-800/80 rounded-lg backdrop-blur text-xs text-zinc-400 pointer-events-none">
-        <p className="font-medium text-zinc-300">FRONTIER 3D Startup Ecosystem</p>
-        <p className="text-[11px] mt-0.5">Click node to inspect & focus • Drag to rotate • Scroll to zoom</p>
+        {/* Top-Left Branding & Search */}
+        <div className="flex flex-col gap-2.5 pointer-events-auto w-full md:w-auto">
+          <div className="flex items-center gap-2 px-3 py-1 bg-zinc-900/90 border border-zinc-800 rounded-lg backdrop-blur w-fit">
+            <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+            <span className="text-[11px] font-mono font-semibold tracking-wider text-zinc-300">
+              BLOOMBERG TERMINAL // FRONTIER DEEPTECH HUD
+            </span>
+          </div>
+          <SearchBar
+            value={searchQuery}
+            onChange={setSearchQuery}
+            resultCount={filteredCompanies.length}
+            totalCount={companies.length}
+          />
+        </div>
+
+        {/* Top-Right Sector Category Filters */}
+        <div className="pointer-events-auto bg-zinc-950/80 border border-zinc-800/80 rounded-xl p-3 backdrop-blur-md shadow-xl max-w-full overflow-x-auto">
+          <div className="text-[10px] font-mono text-zinc-400 mb-1.5 uppercase tracking-wider">
+            Sector Taxonomy Filter
+          </div>
+          <CategoryFilters
+            categories={categories}
+            selectedCategory={selectedCategory}
+            onSelectCategory={setSelectedCategory}
+            categoryCounts={categoryCounts}
+          />
+        </div>
+
       </div>
+
+      {/* Slide-over Company Drawer */}
+      <CompanyDrawer
+        company={selectedCompany}
+        onClose={() => setSelectedCompany(null)}
+      />
+
+      {/* Bottom Instructions HUD */}
+      <div className="absolute bottom-6 left-6 z-10 px-3 py-2 bg-zinc-900/85 border border-zinc-800/80 rounded-lg backdrop-blur text-xs text-zinc-400 pointer-events-none font-mono">
+        <p className="font-medium text-zinc-300">FRONTIER 3D STARTUP ECOSYSTEM</p>
+        <p className="text-[11px] mt-0.5 text-zinc-400">
+          Click any 3D node to inspect profile & citations • Drag to orbit • Scroll to zoom
+        </p>
+      </div>
+
     </div>
   );
 }

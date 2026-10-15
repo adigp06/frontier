@@ -10,6 +10,8 @@ interface NodeFieldProps {
   companies: Company[];
   selectedCompany: Company | null;
   onSelectCompany: (company: Company | null) => void;
+  searchQuery: string;
+  selectedCategory: string;
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -25,10 +27,12 @@ function CompanyNode({
   company,
   isSelected,
   onSelect,
+  isFilteredOut,
 }: {
   company: Company;
   isSelected: boolean;
   onSelect: (company: Company) => void;
+  isFilteredOut: boolean;
 }) {
   const meshRef = useRef<THREE.Mesh>(null);
   const [hovered, setHovered] = useState(false);
@@ -37,7 +41,7 @@ function CompanyNode({
 
   useFrame((_, delta) => {
     if (!meshRef.current) return;
-    const targetScale = isSelected ? 1.8 : hovered ? 1.4 : 1;
+    const targetScale = isFilteredOut ? 0.5 : isSelected ? 1.8 : hovered ? 1.4 : 1;
     meshRef.current.scale.lerp(new THREE.Vector3(targetScale, targetScale, targetScale), delta * 10);
   });
 
@@ -46,10 +50,12 @@ function CompanyNode({
       <mesh
         ref={meshRef}
         onClick={(e) => {
+          if (isFilteredOut) return;
           e.stopPropagation();
           onSelect(company);
         }}
         onPointerOver={(e) => {
+          if (isFilteredOut) return;
           e.stopPropagation();
           setHovered(true);
           document.body.style.cursor = 'pointer';
@@ -63,14 +69,16 @@ function CompanyNode({
         <meshStandardMaterial
           color={color}
           emissive={color}
-          emissiveIntensity={isSelected ? 0.8 : hovered ? 0.5 : 0.2}
+          emissiveIntensity={isFilteredOut ? 0.05 : isSelected ? 0.8 : hovered ? 0.5 : 0.2}
           roughness={0.2}
           metalness={0.8}
+          transparent
+          opacity={isFilteredOut ? 0.15 : 1.0}
         />
       </mesh>
 
       {/* Outer glow ring for selected or hovered */}
-      {(hovered || isSelected) && (
+      {!isFilteredOut && (hovered || isSelected) && (
         <mesh>
           <sphereGeometry args={[0.9, 16, 16]} />
           <meshBasicMaterial color={color} transparent opacity={0.25} wireframe />
@@ -78,7 +86,7 @@ function CompanyNode({
       )}
 
       {/* Label HTML tag */}
-      {(hovered || isSelected) && (
+      {!isFilteredOut && (hovered || isSelected) && (
         <Html position={[0, 1.2, 0]} center distanceFactor={15}>
           <div className="px-2 py-1 text-xs font-medium text-white bg-zinc-900/90 border border-zinc-700 rounded shadow-lg backdrop-blur whitespace-nowrap pointer-events-none">
             <span className="font-bold">{company.name}</span>
@@ -90,17 +98,29 @@ function CompanyNode({
   );
 }
 
-export function NodeField({ companies, selectedCompany, onSelectCompany }: NodeFieldProps) {
+export function NodeField({ companies, selectedCompany, onSelectCompany, searchQuery, selectedCategory }: NodeFieldProps) {
   return (
     <group>
-      {companies.map((company) => (
-        <CompanyNode
-          key={company.id || company.slug}
-          company={company}
-          isSelected={selectedCompany?.id === company.id}
-          onSelect={onSelectCompany}
-        />
-      ))}
+      {companies.map((company) => {
+        const matchesCategory = selectedCategory === 'All' || company.category === selectedCategory;
+        const matchesSearch = searchQuery === '' ||
+          company.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          company.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          company.tagline.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          company.description.toLowerCase().includes(searchQuery.toLowerCase());
+
+        const isFilteredOut = !(matchesCategory && matchesSearch);
+
+        return (
+          <CompanyNode
+            key={company.id || company.slug}
+            company={company}
+            isSelected={selectedCompany?.id === company.id}
+            onSelect={onSelectCompany}
+            isFilteredOut={isFilteredOut}
+          />
+        );
+      })}
     </group>
   );
 }
