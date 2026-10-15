@@ -1,43 +1,26 @@
+'use client';
+
 import { Suspense } from 'react';
 import { Scene } from '@/components/canvas/Scene';
-import { supabase } from '@/lib/supabase/client';
-import { INDIAN_DEEPTECH_STARTUPS } from '@/lib/supabase/seed-data';
-import { Company } from '@/types/company';
-
-async function getCompanies(): Promise<Company[]> {
-  try {
-    const { data, error } = await supabase.from('companies').select('*');
-    if (!error && data && data.length > 0) {
-      return data as Company[];
-    }
-  } catch {
-    // fallback
-  }
-  return INDIAN_DEEPTECH_STARTUPS.map((c, index) => ({
-    ...c,
-    id: `seed-${index}`,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  })) as Company[];
-}
-
-async function SceneContainer() {
-  const companies = await getCompanies();
-  return <Scene companies={companies} />;
-}
 
 export default function Home() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between bg-zinc-950">
-      <Suspense
-        fallback={
-          <div className="w-full h-screen flex items-center justify-center text-zinc-400 bg-zinc-950 font-sans">
-            Loading Frontier 3D Ecosystem...
-          </div>
-        }
-      >
-        <SceneContainer />
-      </Suspense>
+    <main className="relative w-screen h-screen overflow-hidden bg-black text-white selection:bg-white selection:text-black">
+      {/* 3D Scene canvas container */}
+      <div className="absolute inset-0 z-0 w-full h-full">
+        <Suspense
+          fallback={
+            <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black text-white font-mono">
+              <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin mb-4" />
+              <div className="text-xs uppercase tracking-widest text-zinc-400">
+                INITIALIZING FRONTIER 3D TERMINAL...
+              </div>
+            </div>
+          }
+        >
+          <Scene />
+        </Suspense>
+      </div>
     </main>
   );
 }

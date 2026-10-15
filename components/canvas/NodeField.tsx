@@ -14,13 +14,13 @@ interface NodeFieldProps {
   selectedCategory: string;
 }
 
-const CATEGORY_COLORS: Record<string, string> = {
-  'Space Tech': '#3b82f6', // Blue
-  'Robotics & Drones': '#10b981', // Emerald
-  'Industrial AI': '#8b5cf6', // Purple
-  'Quantum Tech': '#ec4899', // Pink
-  'Semiconductors': '#f59e0b', // Amber
-  'EV & Energy Tech': '#06b6d4', // Cyan
+const CATEGORY_ACCENTS: Record<string, string> = {
+  'Space Tech': '#ffffff',         // Pure White
+  'Robotics & Drones': '#d4d4d8',   // Zinc 300
+  'Industrial AI': '#a1a1aa',     // Zinc 400
+  'Quantum Tech': '#ffffff',      // Pure White
+  'Semiconductors': '#e4e4e7',    // Zinc 200
+  'EV & Energy Tech': '#71717a',  // Zinc 500
 };
 
 function CompanyNode({
@@ -37,16 +37,17 @@ function CompanyNode({
   const meshRef = useRef<THREE.Mesh>(null);
   const [hovered, setHovered] = useState(false);
 
-  const color = CATEGORY_COLORS[company.category] || '#ffffff';
+  const accentColor = CATEGORY_ACCENTS[company.category] || '#ffffff';
 
   useFrame((_, delta) => {
     if (!meshRef.current) return;
-    const targetScale = isFilteredOut ? 0.5 : isSelected ? 1.8 : hovered ? 1.4 : 1;
-    meshRef.current.scale.lerp(new THREE.Vector3(targetScale, targetScale, targetScale), delta * 10);
+    const targetScale = isFilteredOut ? 0.4 : isSelected ? 2.0 : hovered ? 1.5 : 1;
+    meshRef.current.scale.lerp(new THREE.Vector3(targetScale, targetScale, targetScale), delta * 12);
   });
 
   return (
     <group position={[company.x, company.y, company.z]}>
+      {/* Core Node Sphere */}
       <mesh
         ref={meshRef}
         onClick={(e) => {
@@ -65,32 +66,35 @@ function CompanyNode({
           document.body.style.cursor = 'default';
         }}
       >
-        <sphereGeometry args={[0.6, 32, 32]} />
+        <sphereGeometry args={[0.55, 32, 32]} />
         <meshStandardMaterial
-          color={color}
-          emissive={color}
-          emissiveIntensity={isFilteredOut ? 0.05 : isSelected ? 0.8 : hovered ? 0.5 : 0.2}
-          roughness={0.2}
-          metalness={0.8}
+          color={isSelected ? '#ffffff' : hovered ? '#f4f4f5' : '#18181b'}
+          emissive={accentColor}
+          emissiveIntensity={isFilteredOut ? 0.05 : isSelected ? 0.9 : hovered ? 0.6 : 0.25}
+          roughness={0.15}
+          metalness={0.9}
           transparent
-          opacity={isFilteredOut ? 0.15 : 1.0}
+          opacity={isFilteredOut ? 0.12 : 1.0}
         />
       </mesh>
 
-      {/* Outer glow ring for selected or hovered */}
+      {/* Outer Luxury Halo Ring for Selected / Hovered */}
       {!isFilteredOut && (hovered || isSelected) && (
         <mesh>
-          <sphereGeometry args={[0.9, 16, 16]} />
-          <meshBasicMaterial color={color} transparent opacity={0.25} wireframe />
+          <sphereGeometry args={[0.85, 24, 24]} />
+          <meshBasicMaterial color="#ffffff" transparent opacity={0.2} wireframe />
         </mesh>
       )}
 
-      {/* Label HTML tag */}
+      {/* High-End Terminal HTML Label */}
       {!isFilteredOut && (hovered || isSelected) && (
-        <Html position={[0, 1.2, 0]} center distanceFactor={15}>
-          <div className="px-2 py-1 text-xs font-medium text-white bg-zinc-900/90 border border-zinc-700 rounded shadow-lg backdrop-blur whitespace-nowrap pointer-events-none">
-            <span className="font-bold">{company.name}</span>
-            <span className="block text-[10px] text-zinc-400">{company.category}</span>
+        <Html position={[0, 1.2, 0]} center distanceFactor={16}>
+          <div className="px-3 py-1.5 text-xs font-mono text-white bg-black/90 border border-white/20 rounded-xl shadow-2xl backdrop-blur-xl whitespace-nowrap pointer-events-none">
+            <div className="flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+              <span className="font-bold tracking-wider">{company.name}</span>
+            </div>
+            <div className="text-[10px] text-zinc-400 mt-0.5 uppercase tracking-widest">{company.category}</div>
           </div>
         </Html>
       )}
